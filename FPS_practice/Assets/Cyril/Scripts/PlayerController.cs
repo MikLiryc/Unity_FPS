@@ -11,6 +11,9 @@ public class PlayerController : MonoBehaviour
 
     private float currentSpeed;
     
+    private float mx = 0f;
+    private float my = 0f;
+
     //카메라 민감도
     [SerializeField]
     private float lookSensitivity;
@@ -35,8 +38,9 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         CharacterMove();
-        CameraVerticalRotation();
-        CameraHorizontalRotation();
+        CameraRotation();
+        //CameraVerticalRotation();
+        //CameraHorizontalRotation();
     }
 
     private void CharacterMove()
@@ -76,5 +80,20 @@ public class PlayerController : MonoBehaviour
         //float yRotation = Input.GetAxisRaw("Horizontal");
         Vector3 characterRotationY = new Vector3(0f, yRotation, 0f) * lookSensitivity;
         playerRigidbody.MoveRotation(playerRigidbody.rotation * Quaternion.Euler(characterRotationY));
+    }
+
+    //마우스를 따라 카메라가 회전 - 한번에 상하좌우 모두 처리
+    private void CameraRotation()
+    {
+        float rotSpeed = 200;
+        float h = Input.GetAxisRaw("Mouse X");
+        float v = Input.GetAxisRaw("Mouse Y");
+
+        mx += h * rotSpeed * Time.deltaTime;
+        my += v * rotSpeed * Time.deltaTime;
+
+        my = Mathf.Clamp(my, -cameraRoationLimit, cameraRoationLimit);
+        playerCamera.transform.eulerAngles = new Vector3(-my, mx, 0f);
+        transform.eulerAngles = new Vector3(transform.eulerAngles.x, mx, transform.eulerAngles.z);
     }
 }
