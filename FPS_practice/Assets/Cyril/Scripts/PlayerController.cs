@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 delegate void CamRotationDel();
@@ -18,10 +19,12 @@ public class PlayerController : MonoBehaviour
     private float my = 0f;
 
     //카메라 민감도
+    [Range(0.1f, 5.0f)]
     [SerializeField]
     private float lookSensitivity;
 
     //카메라 한계
+    [Range(20.0f, 70.0f)]
     [SerializeField]
     private float cameraRoationLimit;
     private float currentCameraRotaitonX = .0f;
@@ -31,9 +34,11 @@ public class PlayerController : MonoBehaviour
     private CharacterController cCon;
     private CamRotationDel camDel;
     private FollowCamera fCam;
+    private RaycastHit[] hitInfo = new RaycastHit[8];
+    private Vector3 moveDir;
+
     private bool isGrounded = false;
 
-    private Vector3 moveDir;
 
     private void Start()
     {
@@ -59,6 +64,7 @@ public class PlayerController : MonoBehaviour
 
         TryJump();
         CheckGrounded();
+        Debug.Log("isGrounded = " + isGrounded);
     }
 
     private void CharacterMove()
@@ -103,19 +109,19 @@ public class PlayerController : MonoBehaviour
     }
 
     //마우스를 따라 카메라가 회전 - 한번에 상하좌우 모두 처리
-    private void CameraRotation()
-    {
-        float rotSpeed = 200;
-        float h = Input.GetAxisRaw("Mouse X");
-        float v = Input.GetAxisRaw("Mouse Y");
-
-        mx += h * rotSpeed * Time.deltaTime;
-        my += v * rotSpeed * Time.deltaTime;
-
-        my = Mathf.Clamp(my, -cameraRoationLimit, cameraRoationLimit);
-        playerCamera.transform.eulerAngles = new Vector3(-my, 0f, 0f);
-        transform.eulerAngles = new Vector3(transform.eulerAngles.x, mx, transform.eulerAngles.z);
-    }
+    //private void CameraRotation()
+    //{
+    //    float rotSpeed = 200;
+    //    float h = Input.GetAxisRaw("Mouse X");
+    //    float v = Input.GetAxisRaw("Mouse Y");
+    //
+    //    mx += h * rotSpeed * Time.deltaTime;
+    //    my += v * rotSpeed * Time.deltaTime;
+    //
+    //    my = Mathf.Clamp(my, -cameraRoationLimit, cameraRoationLimit);
+    //    playerCamera.transform.eulerAngles = new Vector3(-my, 0f, 0f);
+    //    transform.eulerAngles = new Vector3(transform.eulerAngles.x, mx, transform.eulerAngles.z);
+    //}
 
     private void TryJump()
     {
@@ -137,17 +143,35 @@ public class PlayerController : MonoBehaviour
         cCon.Move(moveDir * Time.deltaTime);
     }
 
+    //SphereCastNonAlloc 으로 바닥에 충돌 했는지 아닌지 확인
     private void CheckGrounded()
     {
         var playerHeight = cCon.height / 2;
-        var playerRadius = cCon.radius;
-        var maxDistance = playerHeight - playerRadius - 0.05f;
-        Ray sphRay = new Ray(new Vector3(0, cCon.center.y - playerHeight + playerRadius, 0f), transform.up * -1);
-        RaycastHit hit;
+        var playerRadius = cCon.radius - 0.01f;
+        var maxDistance = playerHeight - playerRadius + 0.1f;
 
-        Physics.SphereCast(cCon.center, playerRadius, -transform.up, out hit, maxDistance);
+        Physics.SphereCastNonAlloc(transform.position, playerRadius, -transform.up, hitInfo, maxDistance);
+        if (hitInfo.Any(hit => hit.collider != null && hit.transform.name != "Player"))
+        {
+            for (int i = 0; i < hitInfo.Length; i++)
+            {
+                if (hitInfo[i].collider != null)
+                {
+                    Debug.Log(i + hitInfo[i].collider.name);
+                }
+            }
+            isGrounded = true;
+        }
+        else
+        {
+            isGrounded = false;
+        }
+        for (int i = 0; i < hitInfo.Length; i++)
+        {
+            hitInfo[i] = new RaycastHit();
+        }
 
-        isGrounded = cCon.isGrounded;
+        //isGrounded = cCon.isGrounded;
         // Physics.SphereCast (레이저를 발사할 위치, 구의 반경, 발사 방향, 충돌 결과, 최대 거리)
         
         //isGrounded = cCon.isGrounded;
